@@ -740,7 +740,7 @@ class LuxAI_S2(ParallelEnv):
                 ] += water_cost
 
     def step(
-        self, actions
+        self, actions, return_invalid_actions=False
     ) -> Tuple[
         Dict[str, ObservationStateDict],
         Dict[str, float],
@@ -853,7 +853,7 @@ class LuxAI_S2(ParallelEnv):
                         actions_by_type[unit_a.act_type].append((factory, unit_a))
 
             # 3. validate all actions against current state, throw away impossible actions
-            actions_by_type = validate_actions(
+            actions_by_type, invalid_actions = validate_actions(
                 self.env_cfg, self.state, actions_by_type, verbose=self.env_cfg.verbose
             )
 
@@ -993,7 +993,10 @@ class LuxAI_S2(ParallelEnv):
         if env_done:
             self.agents = []
 
-        return observations, rewards, dones, infos
+        if return_invalid_actions:
+            return observations, rewards, dones, infos, invalid_actions
+        else:
+            return observations, rewards, dones, infos
 
     ### Game Logic ###
     def add_unit(self, team: Team, unit_type, pos: np.ndarray):

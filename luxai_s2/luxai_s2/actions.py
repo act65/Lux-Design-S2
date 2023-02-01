@@ -219,6 +219,7 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
     """
     actions_by_type_validated = defaultdict(list)
     valid_action = True
+    invalid_actions = []
 
     def invalidate_action(msg):
         nonlocal valid_action
@@ -232,6 +233,7 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
         transfer_action: TransferAction
         transfer_pos: Position = unit.pos + move_deltas[transfer_action.transfer_dir]
         if transfer_action.resource > 4 or transfer_action.resource < 0:
+            invalid_actions.append(unit.unit_id)
             invalidate_action(
                 f"Invalid Transfer Action for unit {unit}, transferring invalid resource id {transfer_action.resource}"
             )
@@ -242,6 +244,7 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
             or transfer_pos.x >= state.board.width
             or transfer_pos.y >= state.board.height
         ):
+            invalid_actions.append(unit.unit_id)
             invalidate_action(
                 f"Invalid Transfer action for unit {unit} - Tried to transfer to {transfer_pos} which is off the map"
             )
@@ -258,12 +261,14 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
         dig_action: DigAction
         dig_cost = unit.unit_cfg.DIG_COST
         if dig_cost > unit.power:
+            invalid_actions.append(unit.unit_id)
             invalidate_action(
                 f"Invalid Dig Action for unit {unit} - Tried to dig requiring {dig_cost} power"
             )
             continue
         # verify not digging over a factory which is not allowed
         if state.board.factory_occupancy_map[unit.pos.x, unit.pos.y] != -1:
+            invalid_actions.append(unit.unit_id)
             invalidate_action(
                 f"Invalid Dig Action for unit {unit} - Tried to dig on top of a factory"
             )
@@ -277,6 +282,7 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
         unit: luxai_unit.Unit
         factory = state.board.get_factory_at(state, unit.pos)
         if factory is None:
+            invalid_actions.append(unit.unit_id)
             invalidate_action(f"No factory to pickup from for unit {unit}")
             continue
         if valid_action:
@@ -294,6 +300,7 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
             or target_pos.x >= state.board.width
             or target_pos.y >= state.board.height
         ):
+            invalid_actions.append(unit.unit_id)
             invalidate_action(
                 f"Invalid movement action for unit {unit} - Tried to move to {target_pos} which is off the map"
             )
@@ -302,6 +309,7 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
             factory_id = state.board.factory_occupancy_map[target_pos.x, target_pos.y]
             if f"factory_{factory_id}" not in state.factories[unit.team.agent]:
                 # if there is a factory but not same team
+                invalid_actions.append(unit.unit_id)
                 invalidate_action(
                     f"Invalid movement action for unit {unit} - Tried to move to {target_pos} which is on an opponent factory"
                 )
@@ -312,6 +320,7 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
         )
 
         if power_required > unit.power:
+            invalid_actions.append(unit.unit_id)
             invalidate_action(
                 f"Invalid movement action for unit {unit} - Tried to move to {target_pos} requiring {power_required} power"
             )
@@ -325,6 +334,7 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
         self_destruct_action: SelfDestructAction
         power_required = unit.unit_cfg.SELF_DESTRUCT_COST
         if power_required > unit.power:
+            invalid_actions.append(unit.unit_id)
             invalidate_action(
                 f"Invalid self destruct action for unit {unit} - Tried to self destruct requiring {power_required} power"
             )
@@ -345,12 +355,14 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
 
         unit_cfg = env_cfg.ROBOTS[build_action.unit_type.name]
         if factory.cargo.metal < unit_cfg.METAL_COST:
+            invalid_actions.append(factory.unit_id)
             invalidate_action(
                 f"Invalid factory build action for factory {factory} - Insufficient metal, factory has {factory.cargo.metal}, but requires {unit_cfg.METAL_COST} to build {build_action.unit_type}"
             )
             continue
         power_required = unit_cfg.POWER_COST
         if factory.power < power_required:
+            invalid_actions.append(factory.unit_id)
             invalidate_action(
                 f"Invalid factory build action for factory {factory} - Insufficient power, factory has {factory.power}, but requires {power_required} power"
             )
@@ -364,6 +376,7 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
         valid_action = True
         water_cost = factory.water_cost(env_cfg)
         if water_cost > factory.cargo.water:
+            invalid_actions.append(factory.unit_id)
             invalidate_action(
                 f"Invalid factory water action for factory {factory} - Insufficient water, factory has {factory.cargo.water}, but requires {water_cost} to water lichen"
             )
@@ -371,4 +384,4 @@ def validate_actions(env_cfg: EnvConfig, state: "State", actions_by_type, verbos
         if valid_action:
             actions_by_type_validated["factory_water"].append((factory, water_action))
 
-    return actions_by_type_validated
+    return actions_by_type_validated, invalid_actions
