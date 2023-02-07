@@ -42,6 +42,7 @@ def main():
         "--replay.compressed_obs",
         help="Whether to save compressed observations or not. Compressed observations do not contain the full observation at each step. In particular, the map information is stored as the first observation, subsequent observations only store the changes that happened.",
         default=True,
+        action="store_false"
     )
 
     # episode configs

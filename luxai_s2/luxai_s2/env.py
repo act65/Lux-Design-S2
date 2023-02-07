@@ -755,6 +755,7 @@ class LuxAI_S2(ParallelEnv):
         - infos
         dicts where each dict looks like {agent_1: item_1, agent_2: item_2}
         """
+        invalid_actions = []
         # If a user passes in actions with no agents, then just return empty observations, etc.
         if not actions:
             raise ValueError("No actions given")
@@ -967,7 +968,9 @@ class LuxAI_S2(ParallelEnv):
                     agent_lichen_mask = np.isin(
                         self.state.board.lichen_strains, strain_ids
                     )
-                    rewards[agent] = self.state.board.lichen[agent_lichen_mask].sum()
+                    # NOTE would rather potential lichen after n turns.
+                    # dont want to add bias?!
+                    # rewards[agent] = self.state.board.lichen[agent_lichen_mask].sum()
             else:
                 # if this was not initialize then agent failed in step 0
                 failed_agents[agent] = True
