@@ -71,6 +71,7 @@ export interface WaterAction extends Action {
 
 export interface RepeatableAction extends Action {
   repeat: number;
+  n?: number;
 }
 
 export interface MoveAction extends RepeatableAction {
@@ -151,6 +152,8 @@ export interface Team {
   factoriesToPlace: number;
 
   action: SetupAction | null;
+
+  error: string | null;
 }
 
 export interface Step {
