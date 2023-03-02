@@ -973,6 +973,8 @@ class LuxAI_S2(ParallelEnv):
                     # NOTE would rather potential lichen after n turns.
                     # dont want to add bias?!
                     # rewards[agent] = self.state.board.lichen[agent_lichen_mask].sum()
+                    rewards[agent] = 0
+
             else:
                 # if this was not initialize then agent failed in step 0
                 failed_agents[agent] = True
